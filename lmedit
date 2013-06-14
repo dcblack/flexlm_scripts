@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gvim -f /eda/flexlm/licenses/license.dat "$@"
+lmreread

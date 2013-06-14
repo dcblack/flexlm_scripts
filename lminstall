@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+#$Info: Create appropriate links for new installation of flexlm. $
+
+export LM_VERSION
+if [[ $# == 1 ]]; then
+  LM_VERSION=$1
+elif [[ "$LM_VERSION" == "" ]]; then
+  cd /eda/flexlm/default
+  LM_VERSION=$(basename $(/bin/pwd))
+else
+  cd /eda/flexlm/$LM_VERSION
+fi
+mkdir -p bin
+cd bin
+ln -s ../../bin/mklns
+ln -s ../../bin/startlmgrd
+ln -s *_lmutil lmutil
+ln -s *_lmgrd  lmgrd
+ln -s lmutil   lmborrow
+ln -s lmutil   lmdiag
+ln -s lmutil   lmdown
+ln -s lmutil   lmhostid
+ln -s lmutil   lmpath
+ln -s lmutil   lmreread
+ln -s lmutil   lmstat
+ln -s lmutil   lmver
+
+#EOF

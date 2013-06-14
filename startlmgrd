@@ -1,0 +1,115 @@
+#!/bin/sh
+#
+# chkconfig: - 91 35
+# description: Starts and stops the FLEX license manager daemon \
+#	       used to authorized FLEX licensed programs.
+#
+# config: /eda/flexlm/licenses/license.dat
+
+# Source function library.
+if [ -f /etc/init.d/functions ] ; then
+  . /etc/init.d/functions
+elif [ -f /etc/rc.d/init.d/functions ] ; then
+  . /etc/rc.d/init.d/functions
+else
+  exit 0
+fi
+
+ALT=''
+if [ $# = 2 ]; then
+  ALT="-$1"
+  shift
+fi
+
+DATE=`date +%y%m%d-%H%M`
+
+LM_VERSION=11.6
+export LM_VERSION
+
+LM_LICENSE_FILE="/eda/flexlm/licenses/license$ALT.dat"
+export LM_LICENSE_FILE
+#LOCK_FILE=/var/lock/subsys/lmgrd-$LM_VERSION
+LOCK_FILE="/eda/flexlm/logs/lmgrd-$LM_VERSION$ALT.lck"
+LOG_FILE="/eda/flexlm/logs/lmgrd-$DATE$ALT.log"
+LMGRD_EXE="/eda/flexlm/$LM_VERSION/bin/lmgrd"
+
+is_running() {
+  ps auxwww | grep -v grep | grep -q "$LMGRD_EXE" && test -r $LOCK_FILE
+  RETVAL=$?
+  return $RETVAL
+}
+start() {
+        KIND="FlexLM"
+	echo -n $"Starting $KIND services: "
+        $LMGRD_EXE > $LOG_FILE 2>&1 &
+	RETVAL=$?
+	echo
+	if [ $RETVAL -eq 0 ]; then
+          touch $LOCK_FILE || RETVAL=1
+        fi
+	if [ $RETVAL -ne 0 ]; then
+          echo "FAILED to start $KIND!"
+        fi
+	return $RETVAL
+}	
+stop() {
+        KIND="FlexLM"
+	echo -n $"Shutting down $KIND services: "
+	killproc lmgrd
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && rm -f $LOCK_FILE
+	echo ""
+	return $RETVAL
+}	
+cleanup() {
+  rm $LOCK_FILE
+}	
+restart() {
+	stop
+	start
+}	
+
+reload() {
+        echo -n $"Reloading lmgrd file: "
+	killproc lmgrd -HUP
+	RETVAL=$?
+	echo
+	return $RETVAL
+}	
+
+rhstatus() {
+	status lmgrd
+}	
+
+case "$1" in
+  start)
+        is_running && echo "Aready running - please run '$0 cleanup' before starting" || start
+	;;
+  stop|down)
+  	stop
+	;;
+  cleanup)
+  	cleanup
+	;;
+  restart)
+  	restart
+	;;
+  reload)
+  	reload
+	;;
+  running)
+  	is_running && echo "lmgrd is running" || echo "lmgrd is down"
+	;;
+  status)
+  	rhstatus
+	;;
+  condrestart)
+  	[ -f $LOCK_FILE ] && restart || :
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|restart|reload|cleanup|status|condrestart}"
+	exit 1
+esac
+
+exit $?
